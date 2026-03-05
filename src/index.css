@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-teal-500: #14b8a6;
+  --color-indigo-400: #818cf8;
+  --color-rose-400: #fb7185;
+  --color-emerald-400: #34d399;
+}
+
+@layer base {
+  :root {
+    --background: var(--color-slate-900);
+    --foreground: var(--color-slate-50);
+    --card: var(--color-slate-800);
+    --card-foreground: var(--color-slate-50);
+    --border: var(--color-slate-700);
+    --muted: var(--color-slate-800);
+    --muted-foreground: var(--color-slate-400);
+    --accent-positive: var(--color-emerald-400);
+    --accent-negative: var(--color-rose-400);
+    --accent-primary: var(--color-teal-500);
+    --accent-secondary: var(--color-indigo-400);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply antialiased min-h-screen selection:bg-teal-500/30;
+  }
+}
