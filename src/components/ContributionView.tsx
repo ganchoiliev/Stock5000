@@ -4,7 +4,12 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const COLORS = ['#14b8a6', '#8b5cf6', '#34d399', '#3b82f6', '#f59e0b'];
 
-export const ContributionView = () => {
+interface ContributionViewProps {
+    hoveredAsset?: string | null;
+    setHoveredAsset?: (symbol: string | null) => void;
+}
+
+export const ContributionView: React.FC<ContributionViewProps> = ({ hoveredAsset, setHoveredAsset }) => {
     const portfolioAssets = MOCK_ASSETS.filter(a => a.symbol !== 'SPY');
 
     // Mocking equal initial allocation that drifted based on 1M change
@@ -42,9 +47,23 @@ export const ContributionView = () => {
                             dataKey="value"
                             stroke="none"
                         >
-                            {data.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
+                            {data.map((entry, index) => {
+                                const isHovered = hoveredAsset === entry.name;
+                                const isOtherHovered = hoveredAsset && !isHovered;
+
+                                return (
+                                    <Cell
+                                        key={`cell-${index}`}
+                                        fill={entry.color}
+                                        opacity={isOtherHovered ? 0.3 : 1}
+                                        stroke={isHovered ? '#fff' : 'none'}
+                                        strokeWidth={isHovered ? 2 : 0}
+                                        style={{ transition: 'all 0.3s ease', cursor: 'pointer' }}
+                                        onMouseEnter={() => setHoveredAsset?.(entry.name)}
+                                        onMouseLeave={() => setHoveredAsset?.(null)}
+                                    />
+                                );
+                            })}
                         </Pie>
                         <Tooltip
                             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f8fafc' }}
@@ -63,13 +82,23 @@ export const ContributionView = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-y-3 mt-4">
-                {data.sort((a, b) => b.value - a.value).map(item => (
-                    <div key={item.name} className="flex items-center gap-2 text-sm">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-slate-300 font-medium">{item.name}</span>
-                        <span className="text-slate-500 ml-auto">{item.actualPercent.toFixed(1)}%</span>
-                    </div>
-                ))}
+                {data.sort((a, b) => b.value - a.value).map(item => {
+                    const isHovered = hoveredAsset === item.name;
+                    const isOtherHovered = hoveredAsset && !isHovered;
+
+                    return (
+                        <div
+                            key={item.name}
+                            className={`flex items-center gap-2 text-sm transition-all duration-300 cursor-pointer p-1 rounded-md ${isHovered ? 'bg-slate-700/50' : ''} ${isOtherHovered ? 'opacity-40 grayscale' : ''}`}
+                            onMouseEnter={() => setHoveredAsset?.(item.name)}
+                            onMouseLeave={() => setHoveredAsset?.(null)}
+                        >
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color, filter: isHovered ? `drop-shadow(0px 0px 4px ${item.color}80)` : 'none' }} />
+                            <span className={`font-medium ${isHovered ? 'text-slate-100' : 'text-slate-300'}`}>{item.name}</span>
+                            <span className="text-slate-500 ml-auto">{item.actualPercent.toFixed(1)}%</span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

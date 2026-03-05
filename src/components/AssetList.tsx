@@ -30,9 +30,11 @@ const AssetSparkline = ({ asset, isActive }: { asset: AssetData, isActive: boole
 interface AssetListProps {
     selectedAssets: string[];
     onToggleAsset: (symbol: string) => void;
+    hoveredAsset?: string | null;
+    setHoveredAsset?: (symbol: string | null) => void;
 }
 
-export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAsset }) => {
+export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAsset, hoveredAsset, setHoveredAsset }) => {
     const portfolioAssets = MOCK_ASSETS.filter(a => a.symbol !== 'SPY');
 
     return (
@@ -40,15 +42,29 @@ export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAs
             {portfolioAssets.map((asset) => {
                 const isPositive = asset.change1M >= 0;
                 const isActive = selectedAssets.includes(asset.symbol);
+                const isHovered = hoveredAsset === asset.symbol;
+
+                // Color mapping matching the chart
+                const COLORS: Record<string, string> = { AAPL: '#00f0ff', AMZN: '#818cf8', NVDA: '#00ff9d', MSFT: '#3b82f6', BTC: '#f59e0b' };
+                const assetColor = COLORS[asset.symbol] || '#00ff9d';
+
+                // For the relative performance bar vs SPY (just a visual heuristic)
+                const spy = MOCK_ASSETS.find(a => a.symbol === 'SPY');
+                const relPerf = asset.change1M - (spy?.change1M || 0);
+                const normalizedWidth = Math.min(100, Math.max(5, Math.abs(relPerf) * 4)); // arbitrary scaling for visual
 
                 return (
                     <div
                         key={asset.symbol}
                         onClick={() => onToggleAsset(asset.symbol)}
-                        className={`group flex flex-col p-4 rounded-xl cursor-pointer relative overflow-hidden transition-all duration-300 ${isActive
-                                ? 'bg-slate-800/80 border-teal-500/50 shadow-[0_0_15px_rgba(0,240,255,0.1)]'
-                                : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/60'
-                            } border`}
+                        onMouseEnter={() => setHoveredAsset?.(asset.symbol)}
+                        onMouseLeave={() => setHoveredAsset?.(null)}
+                        className={`group flex flex-col p-4 rounded-xl cursor-pointer relative overflow-hidden transition-all duration-300 transform hover:-translate-y-1 ${isHovered ? 'bg-slate-800/90 shadow-lg z-10' : isActive ? 'bg-slate-800/60' : 'bg-slate-800/30 grayscale hover:grayscale-0'
+                            }`}
+                        style={{
+                            borderColor: isHovered ? assetColor : (isActive ? `${assetColor}50` : 'rgba(51, 65, 85, 0.5)'),
+                            boxShadow: isHovered ? `0 0 20px ${assetColor}40` : (isActive ? `0 0 10px ${assetColor}10` : 'none')
+                        }}
                     >
                         <div className="flex items-center justify-between mb-3">
                             <div>
@@ -71,8 +87,21 @@ export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAs
                             </div>
                         </div>
 
-                        <div className="flex justify-end border-t border-slate-700/30 pt-3 opacity-90 group-hover:opacity-100 transition-opacity">
-                            <AssetSparkline asset={asset} isActive={isActive} />
+                        <div className="flex justify-between items-end border-t border-slate-700/30 pt-3 mt-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <div className="flex-1 mr-4">
+                                <div className="text-[10px] text-slate-500 mb-1 flex justify-between">
+                                    <span>vs S&P 500</span>
+                                    <span className={relPerf > 0 ? 'text-emerald-500/80' : 'text-rose-500/80'}>{relPerf > 0 ? '+' : ''}{relPerf.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full bg-slate-900/50 rounded-full h-1.5 overflow-hidden flex">
+                                    {relPerf < 0 && <div className="flex-1 flex justify-end"><div className="bg-rose-500/80 h-full rounded-l-full" style={{ width: `${normalizedWidth}%` }}></div></div>}
+                                    <div className="w-[2px] h-full bg-slate-600 z-10"></div>
+                                    {relPerf >= 0 && <div className="flex-1"><div className="bg-emerald-500/80 h-full rounded-r-full" style={{ width: `${normalizedWidth}%` }}></div></div>}
+                                </div>
+                            </div>
+                            <div className="w-24 shrink-0">
+                                <AssetSparkline asset={asset} isActive={isActive} />
+                            </div>
                         </div>
                     </div>
                 );
