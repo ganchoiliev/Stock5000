@@ -1,0 +1,29 @@
+
+> stock-5000@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 2704 modules transformed.
+[31m✗[39m Build failed in 2.08s
+[31merror during build:
+[31mnode_modules/@vercel/analytics/dist/next/index.mjs (160:9): "useParams" is not exported by "__vite-optional-peer-dep:next/navigation.js:@vercel/analytics:false", imported by "node_modules/@vercel/analytics/dist/next/index.mjs".[31m
+file: [36mC:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI Auto W Jack/stock 5000/node_modules/@vercel/analytics/dist/next/index.mjs:160:9[31m
+[33m
+158:     }
+159:   }, [props.beforeSend]);
+160:   useEffect(() => {
+              ^
+161:     inject({
+162:       framework: props.framework || "react",
+[31m
+    at getRollupError (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:17040:16)
+    at Module.traceVariable (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:17452:29)
+    at ModuleScope.findVariable (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:15070:39)
+    at ReturnValueScope.findVariable (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at Identifier.bind (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:5447:40)
+    at CallExpression.bind (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:2829:23)
+    at CallExpression.bind (file:///C:/Users/ZapEc/OneDrive/Desktop/AntiGravity/AI%20Auto%20W%20Jack/stock%205000/node_modules/rollup/dist/es/shared/node-entry.js:12179:15)[39m
