@@ -11,6 +11,7 @@ import { AICoachCard } from '../components/AICoachCard';
 import { RiskMeter } from '../components/RiskMeter';
 import { AttributionChart } from '../components/AttributionChart';
 import { PerformanceHeatmap } from '../components/PerformanceHeatmap';
+import { CorrelationMatrix } from '../components/CorrelationMatrix';
 import { computeIntelligence } from '../lib/intelligence';
 import type { IntelligenceInput } from '../lib/intelligence';
 import { getActiveAssets, getActiveBenchmark } from '../services/data';
@@ -140,6 +141,8 @@ export const Dashboard = () => {
                     </div>
 
                     <PerformanceHeatmap />
+
+                    <CorrelationMatrix timeframe={timeframe} />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <RiskMeter intel={intel} />

@@ -271,3 +271,76 @@ export const getActiveBenchmark = (): AssetData => {
     const activeBenchmark = savedBench || 'SPY';
     return MOCK_ASSETS.find(a => a.symbol === activeBenchmark) || MOCK_ASSETS[0];
 };
+
+export interface CorrelationResult {
+    symbols: string[];
+    names: Record<string, string>;
+    matrix: number[][];
+}
+
+export const computeCorrelationMatrix = (timeframe: Timeframe): CorrelationResult => {
+    const savedTickers = localStorage.getItem('portfolio-tickers');
+    const activeTickers: string[] = savedTickers ? JSON.parse(savedTickers) : ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC'];
+    const savedBench = localStorage.getItem('portfolio-benchmark');
+    const activeBenchmark = savedBench || 'SPY';
+
+    const filteredAssets = MOCK_ASSETS.filter(
+        a => activeTickers.includes(a.symbol) || a.symbol === activeBenchmark
+    );
+    if (filteredAssets.length === 0) return { symbols: [], names: {}, matrix: [] };
+
+    const getHist = (asset: AssetData): DataPoint[] => {
+        switch (timeframe) {
+            case '1M':  return asset.history1M;
+            case '3M':  return asset.history3M;
+            case '6M':  return asset.history6M;
+            case 'YTD': return asset.historyYTD;
+            case '12M': return asset.history12M;
+        }
+    };
+
+    const histories = filteredAssets.map(a => getHist(a));
+    const minLen = Math.min(...histories.map(h => h.length));
+    if (minLen < 2) return { symbols: [], names: {}, matrix: [] };
+
+    // Compute period returns aligned to shortest history
+    const returnsArr = filteredAssets.map((_, idx) => {
+        const hist = histories[idx];
+        const offset = hist.length - minLen;
+        const returns: number[] = [];
+        for (let i = 1; i < minLen; i++) {
+            const prev = hist[offset + i - 1].price;
+            const curr = hist[offset + i].price;
+            returns.push(prev > 0 ? (curr - prev) / prev : 0);
+        }
+        return returns;
+    });
+
+    const mean = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+
+    const pearson = (a: number[], b: number[]): number => {
+        const ma = mean(a);
+        const mb = mean(b);
+        let num = 0, da = 0, db = 0;
+        for (let i = 0; i < a.length; i++) {
+            const ra = a[i] - ma;
+            const rb = b[i] - mb;
+            num += ra * rb;
+            da += ra * ra;
+            db += rb * rb;
+        }
+        const denom = Math.sqrt(da * db);
+        return denom === 0 ? 0 : Math.max(-1, Math.min(1, num / denom));
+    };
+
+    const n = filteredAssets.length;
+    const matrix: number[][] = Array.from({ length: n }, (_, i) =>
+        Array.from({ length: n }, (_, j) => i === j ? 1 : pearson(returnsArr[i], returnsArr[j]))
+    );
+
+    const symbols = filteredAssets.map(a => a.symbol);
+    const names: Record<string, string> = {};
+    filteredAssets.forEach(a => { names[a.symbol] = a.name; });
+
+    return { symbols, names, matrix };
+};
