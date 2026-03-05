@@ -25,7 +25,7 @@ export const ContributionView = () => {
     });
 
     return (
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 h-full flex flex-col">
+        <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 sm:p-6 h-full flex flex-col">
             <h2 className="text-lg font-medium mb-2">Current Allocation</h2>
             <p className="text-sm text-slate-400 mb-6">Estimated drift from equal weight</p>
 

@@ -93,15 +93,15 @@ export const AIChat = () => {
             {/* Floating Action Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className={`fixed bottom-6 right-6 p-4 rounded-full bg-teal-500 text-slate-900 shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] hover:scale-105 transition-all duration-300 z-40 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
+                className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-3 sm:p-4 rounded-full bg-teal-500 text-slate-900 shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] hover:scale-105 transition-all duration-300 z-40 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
                 aria-label="Open AI Chat"
             >
-                <MessageSquare size={24} />
+                <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
             {/* Chat Window Panel */}
             <div
-                className={`fixed bottom-6 right-6 w-full max-w-[380px] h-[550px] max-h-[calc(100vh-100px)] bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl flex flex-col z-50 transition-all duration-300 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}
+                className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-32px)] sm:w-full max-w-[380px] h-[500px] sm:h-[550px] max-h-[calc(100vh-80px)] sm:max-h-[calc(100vh-100px)] bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl flex flex-col z-50 transition-all duration-300 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-800/30 rounded-t-2xl">
@@ -133,8 +133,8 @@ export const AIChat = () => {
                                 {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                             </div>
                             <div className={`max-w-[80%] rounded-2xl p-3 text-sm ${msg.role === 'user'
-                                    ? 'bg-indigo-500 text-white rounded-tr-sm'
-                                    : 'bg-slate-800/80 border border-slate-700/50 text-slate-200 rounded-tl-sm'
+                                ? 'bg-indigo-500 text-white rounded-tr-sm'
+                                : 'bg-slate-800/80 border border-slate-700/50 text-slate-200 rounded-tl-sm'
                                 }`}>
                                 <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                             </div>

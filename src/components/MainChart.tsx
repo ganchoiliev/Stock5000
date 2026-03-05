@@ -22,7 +22,7 @@ export const MainChart: React.FC<MainChartProps> = ({ timeframe, selectedAssets 
     const portfolioAssets = MOCK_ASSETS.filter(a => a.symbol !== 'SPY' && selectedAssets.includes(a.symbol));
 
     return (
-        <div className="h-[400px] w-full">
+        <div className="h-[300px] sm:h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <XAxis

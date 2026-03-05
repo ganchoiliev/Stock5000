@@ -27,12 +27,12 @@ export const Dashboard = () => {
                     </p>
                 </div>
 
-                <div className="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700/50 w-max backdrop-blur-sm">
+                <div className="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700/50 w-full sm:w-max overflow-x-auto backdrop-blur-sm">
                     {(['1M', '12M'] as Timeframe[]).map((t) => (
                         <button
                             key={t}
                             onClick={() => setTimeframe(t)}
-                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${timeframe === t
+                            className={`flex-1 sm:flex-none px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${timeframe === t
                                 ? 'bg-teal-500/20 text-teal-400 shadow-sm border border-teal-500/30'
                                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                                 }`}
