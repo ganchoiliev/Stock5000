@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { AssetDetail } from './pages/AssetDetail';
+import { Analytics } from "@vercel/analytics/react"
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Route path="asset/:symbol" element={<AssetDetail />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }
