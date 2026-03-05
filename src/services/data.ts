@@ -1,6 +1,9 @@
 import { format, subDays, subWeeks } from 'date-fns';
 
 export type Timeframe = '1M' | '12M';
+export type BenchmarkType = 'SPY' | 'QQQ';
+
+export const SUPPORTED_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC', 'TSLA', 'META', 'GOOGL'];
 
 export interface DataPoint {
     date: string;
@@ -124,15 +127,40 @@ export const MOCK_ASSETS: AssetData[] = [
 const initMockData = () => {
     const configs: Record<string, { price: number, vol: number, trend: number }> = {
         'SPY': { price: 500, vol: 0.01, trend: 0.0005 },
+        'QQQ': { price: 440, vol: 0.012, trend: 0.0006 },
         'AAPL': { price: 175, vol: 0.015, trend: 0.001 },
         'AMZN': { price: 170, vol: 0.02, trend: 0.0015 },
         'NVDA': { price: 850, vol: 0.03, trend: 0.003 },
         'MSFT': { price: 400, vol: 0.012, trend: 0.001 },
         'BTC': { price: 65000, vol: 0.04, trend: 0.002 },
+        'TSLA': { price: 180, vol: 0.035, trend: 0.0005 },
+        'META': { price: 500, vol: 0.025, trend: 0.002 },
+        'GOOGL': { price: 170, vol: 0.015, trend: 0.001 },
     };
 
-    MOCK_ASSETS.forEach(asset => {
-        const config = configs[asset.symbol];
+    // dynamically generate ALL supported tickers just in case we need them
+    const allTickersToGen = Array.from(new Set([...SUPPORTED_TICKERS, 'SPY', 'QQQ']));
+
+    // Clear and rebuild MOCK_ASSETS
+    MOCK_ASSETS.length = 0;
+
+    allTickersToGen.forEach(symbol => {
+        const config = configs[symbol] || { price: 100, vol: 0.02, trend: 0.001 }; // Fallback
+
+        const type = symbol === 'SPY' || symbol === 'QQQ' ? 'benchmark' : symbol === 'BTC' ? 'crypto' : 'stock';
+        const name = symbol === 'SPY' ? 'S&P 500' : symbol === 'QQQ' ? 'Nasdaq 100' : symbol;
+
+        const asset: AssetData = {
+            symbol,
+            name,
+            type,
+            history1M: [],
+            history12M: [],
+            currentPrice: 0,
+            change1M: 0,
+            change12M: 0
+        };
+
         // 1M = 30 days
         asset.history1M = generateHistory(config.price, config.vol, 30, 'day', config.trend);
         // 12M = 52 weeks (we need the 1M end to match 12M end structurally, but for mock let's just use weeks)
@@ -145,6 +173,8 @@ const initMockData = () => {
 
         const start12MPrice = asset.history12M[0].price;
         asset.change12M = ((asset.currentPrice - start12MPrice) / start12MPrice) * 100;
+
+        MOCK_ASSETS.push(asset);
     });
 };
 
@@ -158,7 +188,16 @@ export const getNormalizedChartData = (timeframe: Timeframe): NormalizedDataPoin
     for (let i = 0; i < points; i++) {
         const dataPoint: NormalizedDataPoint = { date: '' };
 
-        MOCK_ASSETS.forEach(asset => {
+        // Read settings from local storage
+        const savedTickers = localStorage.getItem('portfolio-tickers');
+        const activeTickers = savedTickers ? JSON.parse(savedTickers) : ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC'];
+
+        const savedBench = localStorage.getItem('portfolio-benchmark');
+        const activeBenchmark = savedBench || 'SPY';
+
+        const filteredAssets = MOCK_ASSETS.filter(a => activeTickers.includes(a.symbol) || a.symbol === activeBenchmark);
+
+        filteredAssets.forEach(asset => {
             const history = timeframe === '1M' ? asset.history1M : asset.history12M;
             if (history[i]) {
                 dataPoint.date = history[i].date;
@@ -177,4 +216,16 @@ export const getNormalizedChartData = (timeframe: Timeframe): NormalizedDataPoin
 
 export const getAssetBySymbol = (symbol: string): AssetData | undefined => {
     return MOCK_ASSETS.find(a => a.symbol === symbol);
+};
+
+export const getActiveAssets = (): AssetData[] => {
+    const savedTickers = localStorage.getItem('portfolio-tickers');
+    const activeTickers = savedTickers ? JSON.parse(savedTickers) : ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC'];
+    return MOCK_ASSETS.filter(a => activeTickers.includes(a.symbol) && a.type !== 'benchmark');
+};
+
+export const getActiveBenchmark = (): AssetData => {
+    const savedBench = localStorage.getItem('portfolio-benchmark');
+    const activeBenchmark = savedBench || 'SPY';
+    return MOCK_ASSETS.find(a => a.symbol === activeBenchmark) || MOCK_ASSETS[0];
 };
