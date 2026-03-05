@@ -207,34 +207,50 @@ export const loadLiveMarketData = async () => {
 };
 
 // Get normalized data for chart (base 100)
+// Correctly handles all 5 timeframes — previously was hardcoded to 1M vs 12M only.
 export const getNormalizedChartData = (timeframe: Timeframe): NormalizedDataPoint[] => {
-    const points = timeframe === '1M' ? 31 : 53; // 30+1 or 52+1 points
-    const result: NormalizedDataPoint[] = [];
+    const savedTickers = localStorage.getItem('portfolio-tickers');
+    const activeTickers: string[] = savedTickers ? JSON.parse(savedTickers) : ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC'];
 
-    for (let i = 0; i < points; i++) {
+    const savedBench = localStorage.getItem('portfolio-benchmark');
+    const activeBenchmark = savedBench || 'SPY';
+
+    const filteredAssets = MOCK_ASSETS.filter(
+        a => activeTickers.includes(a.symbol) || a.symbol === activeBenchmark
+    );
+    if (filteredAssets.length === 0) return [];
+
+    const getHistForTimeframe = (asset: AssetData): DataPoint[] => {
+        switch (timeframe) {
+            case '1M':  return asset.history1M;
+            case '3M':  return asset.history3M;
+            case '6M':  return asset.history6M;
+            case 'YTD': return asset.historyYTD;
+            case '12M': return asset.history12M;
+        }
+    };
+
+    const histories = filteredAssets.map(a => getHistForTimeframe(a));
+    const minLen = Math.min(...histories.map(h => h.length));
+    if (minLen === 0) return [];
+
+    const result: NormalizedDataPoint[] = [];
+    for (let i = 0; i < minLen; i++) {
         const dataPoint: NormalizedDataPoint = { date: '' };
 
-        // Read settings from local storage
-        const savedTickers = localStorage.getItem('portfolio-tickers');
-        const activeTickers = savedTickers ? JSON.parse(savedTickers) : ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC'];
-
-        const savedBench = localStorage.getItem('portfolio-benchmark');
-        const activeBenchmark = savedBench || 'SPY';
-
-        const filteredAssets = MOCK_ASSETS.filter(a => activeTickers.includes(a.symbol) || a.symbol === activeBenchmark);
-
-        filteredAssets.forEach(asset => {
-            const history = timeframe === '1M' ? asset.history1M : asset.history12M;
-            if (history[i]) {
-                dataPoint.date = history[i].date;
-                const initialPrice = history[0].price;
-                dataPoint[asset.symbol] = Number(((history[i].price / initialPrice) * 100).toFixed(2));
+        filteredAssets.forEach((asset, idx) => {
+            const history = histories[idx];
+            const alignedIndex = history.length - minLen + i;
+            if (alignedIndex >= 0 && history[alignedIndex]) {
+                dataPoint.date = history[alignedIndex].date;
+                const initialPrice = history[history.length - minLen].price;
+                dataPoint[asset.symbol] = Number(
+                    ((history[alignedIndex].price / initialPrice) * 100).toFixed(2)
+                );
             }
         });
 
-        if (dataPoint.date) {
-            result.push(dataPoint);
-        }
+        if (dataPoint.date) result.push(dataPoint);
     }
 
     return result;

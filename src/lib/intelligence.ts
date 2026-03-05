@@ -89,7 +89,15 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
         return createEmptyIntelligenceOutput('Benchmark data unavailable.');
     }
 
-    const getHist = (a: AssetData) => timeframe === '1M' ? a.history1M : a.history12M;
+    const getHist = (a: AssetData): import('../services/data').DataPoint[] => {
+        switch (timeframe) {
+            case '1M':  return a.history1M;
+            case '3M':  return a.history3M;
+            case '6M':  return a.history6M;
+            case 'YTD': return a.historyYTD;
+            case '12M': return a.history12M;
+        }
+    };
 
     // Filter out assets with no data for the timeframe
     const validAssets = assets.filter(a => getHist(a) && getHist(a).length > 0);
@@ -166,17 +174,18 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
     const benchVol = computeStdDev(alignedBenchmarkReturns);
     const maxDrawdown = computeMaxDrawdown(portfolioCumulative);
 
-    // Annualized Sharpe Ratio Calculation (Assumes 4% Risk-Free Rate)
+    // Annualized Sharpe/Sortino — 6M and 12M use weekly data (52 periods/yr), others daily (252).
     const annualRFR = 0.04;
-    const annualizedReturn = Math.pow(1 + portfolioReturn, 252 / numPoints) - 1;
-    const annualizedVol = vol * Math.sqrt(252);
+    const periodsPerYear = (timeframe === '6M' || timeframe === '12M') ? 52 : 252;
+    const annualizedReturn = Math.pow(1 + portfolioReturn, periodsPerYear / numPoints) - 1;
+    const annualizedVol = vol * Math.sqrt(periodsPerYear);
     const sharpeRatio = annualizedVol === 0 ? 0 : (annualizedReturn - annualRFR) / annualizedVol;
 
     // Sortino Ratio — like Sharpe but only penalizes downside volatility.
     // Better metric for portfolios with crypto (upside swings shouldn't count as risk).
     // MAR (minimum acceptable return) = 0 per day.
     const downsideVariance = portfolioDailyReturns.reduce((sum, r) => sum + (r < 0 ? r * r : 0), 0) / portfolioDailyReturns.length;
-    const annualizedDownsideVol = Math.sqrt(downsideVariance) * Math.sqrt(252);
+    const annualizedDownsideVol = Math.sqrt(downsideVariance) * Math.sqrt(periodsPerYear);
     const sortinoRatio = annualizedDownsideVol === 0 ? 0 : (annualizedReturn - annualRFR) / annualizedDownsideVol;
 
     // Beta: cov(portfolio, benchmark) / var(benchmark)
@@ -201,7 +210,9 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
         flags.push({ type: 'RISK', level: 'warn', label: `Vol > SPY x1.3` });
     }
 
-    if ((timeframe === '1M' && maxDrawdown < -0.08) || (timeframe === '12M' && maxDrawdown < -0.18)) {
+    // Drawdown thresholds scale with the timeframe window
+    const ddThreshold = timeframe === '1M' ? -0.08 : ['3M', 'YTD'].includes(timeframe) ? -0.12 : -0.18;
+    if (maxDrawdown < ddThreshold) {
         flags.push({ type: 'DRAWDOWN', level: 'risk', label: `Max DD ${Math.abs(maxDrawdown * 100).toFixed(1)}%` });
     }
 
