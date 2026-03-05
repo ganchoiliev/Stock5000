@@ -16,6 +16,7 @@ export type IntelligenceOutput = {
     vol: number;
     maxDrawdown: number;
     flags: { type: "RISK" | "DRAWDOWN" | "CONCENTRATION" | "DIVERGENCE"; level: "ok" | "warn" | "risk"; label: string }[];
+    marketRegime: "Bullish" | "Neutral" | "Bearish";
     pulseScore: number;
     summary: string;
 };
@@ -158,6 +159,13 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
         flags.push({ type: 'DIVERGENCE', level: 'warn', label: `Low SPY correlation` });
     }
 
+    // Market Regime Detection
+    // Simple heuristic: SPY positive by >1% -> Bullish, SPY negative < -1% -> Bearish, else Neutral
+    // Can enhance later with moving averages if data supports it.
+    let marketRegime: IntelligenceOutput['marketRegime'] = "Neutral";
+    if (benchmarkReturn > 0.01) marketRegime = "Bullish";
+    else if (benchmarkReturn < -0.01) marketRegime = "Bearish";
+
     // Pulse Score Calculation
     let pulseScore = 50;
     // Cap alpha contribution to ±40 points
@@ -191,6 +199,7 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
         vol,
         maxDrawdown,
         flags,
+        marketRegime,
         pulseScore,
         summary
     };

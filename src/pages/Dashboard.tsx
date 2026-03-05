@@ -4,6 +4,9 @@ import { MainChart } from '../components/MainChart';
 import { AssetList } from '../components/AssetList';
 import { ContributionView } from '../components/ContributionView';
 import { IntelligenceCard } from '../components/IntelligenceCard';
+import { AICoachCard } from '../components/AICoachCard';
+import { RiskMeter } from '../components/RiskMeter';
+import { AttributionChart } from '../components/AttributionChart';
 import { PerformanceHeatmap } from '../components/PerformanceHeatmap';
 import { computeIntelligence } from '../lib/intelligence';
 import type { IntelligenceInput } from '../lib/intelligence';
@@ -53,12 +56,19 @@ export const Dashboard = () => {
                 </div>
             </div>
 
-            <IntelligenceCard
-                intel={intel}
-                timeframe={timeframe}
-                hoveredAsset={hoveredAsset}
-                onHighlightSymbol={setHoveredAsset}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <IntelligenceCard
+                        intel={intel}
+                        timeframe={timeframe}
+                        hoveredAsset={hoveredAsset}
+                        onHighlightSymbol={setHoveredAsset}
+                    />
+                </div>
+                <div className="lg:col-span-1">
+                    <AICoachCard intel={intel} timeframe={timeframe} />
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
@@ -75,6 +85,15 @@ export const Dashboard = () => {
                     </div>
 
                     <PerformanceHeatmap />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <RiskMeter intel={intel} />
+                        <AttributionChart
+                            intel={intel}
+                            hoveredAsset={hoveredAsset}
+                            onHighlightSymbol={setHoveredAsset}
+                        />
+                    </div>
                 </div>
 
                 <div className="lg:col-span-1">
