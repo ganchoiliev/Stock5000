@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Timeframe } from '../services/data';
 import { MainChart } from '../components/MainChart';
 import { AssetList } from '../components/AssetList';
 import { ContributionView } from '../components/ContributionView';
-import { PortfolioSummary } from '../components/PortfolioSummary';
+import { IntelligenceCard } from '../components/IntelligenceCard';
 import { PerformanceHeatmap } from '../components/PerformanceHeatmap';
+import { computeIntelligence } from '../lib/intelligence';
+import type { IntelligenceInput } from '../lib/intelligence';
+import { MOCK_ASSETS } from '../services/data';
 
 export const Dashboard = () => {
     const [timeframe, setTimeframe] = useState<Timeframe>('1M');
@@ -13,6 +16,15 @@ export const Dashboard = () => {
 
     // Track which asset is currently hovered
     const [hoveredAsset, setHoveredAsset] = useState<string | null>(null);
+
+    const intel = useMemo(() => {
+        const input: IntelligenceInput = {
+            assets: MOCK_ASSETS.filter(a => a.type !== 'benchmark'),
+            benchmark: MOCK_ASSETS.find(a => a.symbol === 'SPY')!,
+            timeframe
+        };
+        return computeIntelligence(input);
+    }, [timeframe]);
 
     const toggleAsset = (symbol: string) => {
         setSelectedAssets(prev =>
@@ -41,7 +53,12 @@ export const Dashboard = () => {
                 </div>
             </div>
 
-            <PortfolioSummary />
+            <IntelligenceCard
+                intel={intel}
+                timeframe={timeframe}
+                hoveredAsset={hoveredAsset}
+                onHighlightSymbol={setHoveredAsset}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
