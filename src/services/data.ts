@@ -1,7 +1,9 @@
 import { format, subDays, subWeeks } from 'date-fns';
 
-export type Timeframe = '1M' | '12M';
-export type BenchmarkType = 'SPY' | 'QQQ';
+export type Timeframe = '1M' | '3M' | '6M' | 'YTD' | '12M';
+export type BenchmarkType = 'SPY' | 'QQQ' | 'DIA' | 'ARKK' | 'GLD';
+
+const ALL_BENCHMARKS: BenchmarkType[] = ['SPY', 'QQQ', 'DIA', 'ARKK', 'GLD'];
 
 export const SUPPORTED_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'BTC', 'TSLA', 'META', 'GOOGL'];
 
@@ -15,9 +17,15 @@ export interface AssetData {
     name: string;
     type: 'stock' | 'crypto' | 'benchmark';
     history1M: DataPoint[];
+    history3M: DataPoint[];
+    history6M: DataPoint[];
+    historyYTD: DataPoint[];
     history12M: DataPoint[];
     currentPrice: number;
     change1M: number;
+    change3M: number;
+    change6M: number;
+    changeYTD: number;
     change12M: number;
 }
 
@@ -60,73 +68,15 @@ const generateHistory = (
     return history;
 };
 
-export const MOCK_ASSETS: AssetData[] = [
-    {
-        symbol: 'SPY',
-        name: 'S&P 500',
-        type: 'benchmark',
-        history1M: [],
-        history12M: [],
-        currentPrice: 0,
-        change1M: 0,
-        change12M: 0,
-    },
-    {
-        symbol: 'AAPL',
-        name: 'Apple Inc.',
-        type: 'stock',
-        history1M: [],
-        history12M: [],
-        currentPrice: 0,
-        change1M: 0,
-        change12M: 0,
-    },
-    {
-        symbol: 'AMZN',
-        name: 'Amazon.com Inc.',
-        type: 'stock',
-        history1M: [],
-        history12M: [],
-        currentPrice: 0,
-        change1M: 0,
-        change12M: 0,
-    },
-    {
-        symbol: 'NVDA',
-        name: 'NVIDIA Corp.',
-        type: 'stock',
-        history1M: [],
-        history12M: [],
-        currentPrice: 0,
-        change1M: 0,
-        change12M: 0,
-    },
-    {
-        symbol: 'MSFT',
-        name: 'Microsoft Corp.',
-        type: 'stock',
-        history1M: [],
-        history12M: [],
-        currentPrice: 0,
-        change1M: 0,
-        change12M: 0,
-    },
-    {
-        symbol: 'BTC',
-        name: 'Bitcoin',
-        type: 'crypto',
-        history1M: [],
-        history12M: [],
-        currentPrice: 0,
-        change1M: 0,
-        change12M: 0,
-    },
-];
+export const MOCK_ASSETS: AssetData[] = [];
 
-// Initialize mock data
-const initMockData = () => {
+// Initialize mock data synchronously so initial render doesn't break
+export const initMockData = () => {
     const configs: Record<string, { price: number, vol: number, trend: number }> = {
-        'SPY': { price: 500, vol: 0.01, trend: 0.0005 },
+        'SPY':  { price: 500,   vol: 0.01,  trend: 0.0005 },
+        'DIA':  { price: 380,   vol: 0.009, trend: 0.0004 },
+        'ARKK': { price: 45,    vol: 0.035, trend: 0.0008 },
+        'GLD':  { price: 185,   vol: 0.008, trend: 0.0003 },
         'QQQ': { price: 440, vol: 0.012, trend: 0.0006 },
         'AAPL': { price: 175, vol: 0.015, trend: 0.001 },
         'AMZN': { price: 170, vol: 0.02, trend: 0.0015 },
@@ -138,47 +88,123 @@ const initMockData = () => {
         'GOOGL': { price: 170, vol: 0.015, trend: 0.001 },
     };
 
-    // dynamically generate ALL supported tickers just in case we need them
-    const allTickersToGen = Array.from(new Set([...SUPPORTED_TICKERS, 'SPY', 'QQQ']));
+    const allTickersToGen = Array.from(new Set([...SUPPORTED_TICKERS, ...ALL_BENCHMARKS]));
 
-    // Clear and rebuild MOCK_ASSETS
+    // Clear and rebuild
     MOCK_ASSETS.length = 0;
 
     allTickersToGen.forEach(symbol => {
-        const config = configs[symbol] || { price: 100, vol: 0.02, trend: 0.001 }; // Fallback
-
-        const type = symbol === 'SPY' || symbol === 'QQQ' ? 'benchmark' : symbol === 'BTC' ? 'crypto' : 'stock';
-        const name = symbol === 'SPY' ? 'S&P 500' : symbol === 'QQQ' ? 'Nasdaq 100' : symbol;
+        const config = configs[symbol] || { price: 100, vol: 0.02, trend: 0.001 };
+        const type = (ALL_BENCHMARKS as string[]).includes(symbol) ? 'benchmark' : symbol === 'BTC' ? 'crypto' : 'stock';
+        const nameMap: Record<string, string> = { 'SPY': 'S&P 500', 'QQQ': 'Nasdaq 100', 'DIA': 'Dow Jones', 'ARKK': 'Innovation', 'GLD': 'Gold' };
+        const name = nameMap[symbol] || symbol;
 
         const asset: AssetData = {
-            symbol,
-            name,
-            type,
-            history1M: [],
-            history12M: [],
+            symbol, name, type,
+            history1M: [], history3M: [], history6M: [], historyYTD: [], history12M: [],
             currentPrice: 0,
-            change1M: 0,
-            change12M: 0
+            change1M: 0, change3M: 0, change6M: 0, changeYTD: 0, change12M: 0
         };
 
-        // 1M = 30 days
         asset.history1M = generateHistory(config.price, config.vol, 30, 'day', config.trend);
-        // 12M = 52 weeks (we need the 1M end to match 12M end structurally, but for mock let's just use weeks)
+        asset.history3M = generateHistory(config.price * 0.95, config.vol, 90, 'day', config.trend);
+        asset.history6M = generateHistory(config.price * 0.9, config.vol * 1.5, 26, 'week', config.trend * 2);
+        // Approximation for YTD
+        asset.historyYTD = generateHistory(config.price * 0.92, config.vol * 1.2, 50, 'day', config.trend * 1.5);
         asset.history12M = generateHistory(config.price * 0.8, config.vol * 2, 52, 'week', config.trend * 3);
 
         asset.currentPrice = asset.history1M[asset.history1M.length - 1].price;
 
-        const start1MPrice = asset.history1M[0].price;
-        asset.change1M = ((asset.currentPrice - start1MPrice) / start1MPrice) * 100;
-
-        const start12MPrice = asset.history12M[0].price;
-        asset.change12M = ((asset.currentPrice - start12MPrice) / start12MPrice) * 100;
+        asset.change1M = ((asset.currentPrice - asset.history1M[0].price) / asset.history1M[0].price) * 100;
+        asset.change3M = ((asset.currentPrice - asset.history3M[0].price) / asset.history3M[0].price) * 100;
+        asset.change6M = ((asset.currentPrice - asset.history6M[0].price) / asset.history6M[0].price) * 100;
+        asset.changeYTD = ((asset.currentPrice - asset.historyYTD[0].price) / asset.historyYTD[0].price) * 100;
+        asset.change12M = ((asset.currentPrice - asset.history12M[0].price) / asset.history12M[0].price) * 100;
 
         MOCK_ASSETS.push(asset);
     });
 };
 
 initMockData();
+
+// Fetch live data from proxy
+export const loadLiveMarketData = async () => {
+    try {
+        const tickersToFetch = Array.from(new Set([...SUPPORTED_TICKERS, ...ALL_BENCHMARKS]));
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const cacheKey = `portfolio-data-cache-${today}`;
+        const cached = localStorage.getItem(cacheKey);
+
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            MOCK_ASSETS.length = 0;
+            parsed.forEach((a: AssetData) => MOCK_ASSETS.push(a));
+            return true;
+        }
+
+        const promises = tickersToFetch.map(async (symbol) => {
+            const ranges = ['1mo', '3mo', '6mo', 'ytd', '1y'];
+            const historyMap: Record<string, DataPoint[]> = {};
+
+            for (const range of ranges) {
+                const interval = (range === '1y' || range === '6mo') ? '1wk' : '1d';
+                // Use our Vercel serverless proxy — avoids CORS and allorigins rate limits
+                const res = await fetch(`/api/market?symbol=${symbol}&range=${range}&interval=${interval}`);
+                if (!res.ok) throw new Error(`Failed to fetch ${symbol}`);
+                const data = await res.json();
+
+                const result = data.chart.result[0];
+                const timestamps: number[] = result.timestamp;
+                const closePrices: number[] = result.indicators.quote[0].close;
+
+                const points: DataPoint[] = [];
+                for (let i = 0; i < timestamps.length; i++) {
+                    if (closePrices[i] !== null && closePrices[i] !== undefined) {
+                        points.push({
+                            date: format(new Date(timestamps[i] * 1000), 'yyyy-MM-dd'),
+                            price: Number(closePrices[i].toFixed(2))
+                        });
+                    }
+                }
+                historyMap[range] = points;
+            }
+
+            const type = (ALL_BENCHMARKS as string[]).includes(symbol) ? 'benchmark' : symbol === 'BTC' ? 'crypto' : 'stock';
+            const nameMap: Record<string, string> = { 'SPY': 'S&P 500', 'QQQ': 'Nasdaq 100', 'DIA': 'Dow Jones', 'ARKK': 'Innovation', 'GLD': 'Gold' };
+            const name = nameMap[symbol] || symbol;
+
+            const currentPrice = historyMap['1mo'][historyMap['1mo'].length - 1].price;
+
+            const calcChange = (pts: DataPoint[]) => pts.length > 0 ? ((currentPrice - pts[0].price) / pts[0].price) * 100 : 0;
+
+            return {
+                symbol, name, type,
+                history1M: historyMap['1mo'],
+                history3M: historyMap['3mo'],
+                history6M: historyMap['6mo'],
+                historyYTD: historyMap['ytd'],
+                history12M: historyMap['1y'],
+                currentPrice,
+                change1M: calcChange(historyMap['1mo']),
+                change3M: calcChange(historyMap['3mo']),
+                change6M: calcChange(historyMap['6mo']),
+                changeYTD: calcChange(historyMap['ytd']),
+                change12M: calcChange(historyMap['1y'])
+            } as AssetData;
+        });
+
+        const liveAssets = await Promise.all(promises);
+
+        MOCK_ASSETS.length = 0;
+        liveAssets.forEach(a => MOCK_ASSETS.push(a));
+
+        localStorage.setItem(cacheKey, JSON.stringify(liveAssets));
+        return true;
+    } catch (error) {
+        console.error("Live data fetch failed, falling back to initialized mock data:", error);
+        return false;
+    }
+};
 
 // Get normalized data for chart (base 100)
 export const getNormalizedChartData = (timeframe: Timeframe): NormalizedDataPoint[] => {

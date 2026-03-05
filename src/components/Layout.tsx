@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, LayoutDashboard, CalendarDays, Settings } from 'lucide-react';
 import { AIChat } from './AIChat';
+import { AlertBanner } from './AlertBanner';
 
 export const Layout = () => {
     const location = useLocation();
@@ -8,6 +9,7 @@ export const Layout = () => {
 
     return (
         <div className="min-h-screen flex flex-col relative">
+            <AlertBanner />
             <header className="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-2 group">
@@ -17,10 +19,28 @@ export const Layout = () => {
                         <span className="text-xl font-medium tracking-tight text-slate-50">Pulse</span>
                     </Link>
 
-                    <nav>
-                        <div className="text-sm font-medium text-slate-400">
-                            {isDashboard ? 'Dashboard' : 'Asset Detail'}
-                        </div>
+                    <nav className="flex items-center gap-6">
+                        <Link
+                            to="/"
+                            className={`flex items-center gap-2 text-sm font-medium transition-colors ${isDashboard ? 'text-teal-400' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            <LayoutDashboard size={16} />
+                            <span className="hidden sm:inline">Dashboard</span>
+                        </Link>
+                        <Link
+                            to="/review"
+                            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/review' ? 'text-teal-400' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            <CalendarDays size={16} />
+                            <span className="hidden sm:inline">Weekly Review</span>
+                        </Link>
+                        <Link
+                            to="/settings"
+                            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/settings' ? 'text-teal-400' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            <Settings size={16} />
+                            <span className="hidden sm:inline">Settings</span>
+                        </Link>
                     </nav>
                 </div>
             </header>

@@ -72,6 +72,15 @@ export const IntelligenceCard: React.FC<IntelligenceCardProps> = ({ intel, timef
                     <span className="flex items-center">
                         Max DD: {(intel.maxDrawdown * 100).toFixed(1)}% <TooltipIcon text="Maximum peak-to-trough drop in the period." />
                     </span>
+                    <span className="flex items-center">
+                        Sharpe: {intel.sharpeRatio.toFixed(2)} <TooltipIcon text="Risk-adjusted return (calculated using 4% annualized risk-free rate)." />
+                    </span>
+                    <span className="flex items-center">
+                        Sortino: <span className={`ml-1 font-semibold ${intel.sortinoRatio > 2 ? 'text-emerald-400' : intel.sortinoRatio > 1 ? 'text-sky-400' : 'text-slate-300'}`}>{intel.sortinoRatio.toFixed(2)}</span> <TooltipIcon text="Like Sharpe, but only penalizes downside volatility. More relevant for portfolios with crypto." />
+                    </span>
+                    <span className="flex items-center">
+                        Beta: <span className={`ml-1 font-semibold ${intel.beta > 1.5 ? 'text-rose-400' : intel.beta > 1.0 ? 'text-amber-400' : 'text-emerald-400'}`}>{intel.beta.toFixed(2)}</span> <TooltipIcon text="Sensitivity to benchmark moves. Beta > 1 means the portfolio swings more than the market." />
+                    </span>
                 </div>
             </div>
 

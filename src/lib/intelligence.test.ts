@@ -17,7 +17,8 @@ describe('intelligence engine', () => {
                     { date: '2024-01-06', price: 115 }
                 ],
                 currentPrice: 115, change1M: 15,
-                history12M: [], change12M: 0
+                history3M: [], history6M: [], historyYTD: [], history12M: [],
+                change3M: 0, change6M: 0, changeYTD: 0, change12M: 0
             },
             {
                 symbol: 'B', name: 'Asset B', type: 'crypto',
@@ -30,7 +31,8 @@ describe('intelligence engine', () => {
                     { date: '2024-01-06', price: 160 }
                 ],
                 currentPrice: 160, change1M: -20,
-                history12M: [], change12M: 0
+                history3M: [], history6M: [], historyYTD: [], history12M: [],
+                change3M: 0, change6M: 0, changeYTD: 0, change12M: 0
             }
         ];
 
@@ -45,7 +47,8 @@ describe('intelligence engine', () => {
                 { date: '2024-01-06', price: 55 }
             ],
             currentPrice: 55, change1M: 10,
-            history12M: [], change12M: 0
+            history3M: [], history6M: [], historyYTD: [], history12M: [],
+            change3M: 0, change6M: 0, changeYTD: 0, change12M: 0
         };
 
         const result = computeIntelligence({
@@ -72,7 +75,7 @@ describe('intelligence engine', () => {
     it('returns zeroes when arrays are empty', () => {
         const result = computeIntelligence({
             assets: [],
-            benchmark: { symbol: 'SPY', name: 'SPY', type: 'benchmark', history1M: [], history12M: [], currentPrice: 0, change1M: 0, change12M: 0 },
+            benchmark: { symbol: 'SPY', name: 'SPY', type: 'benchmark', history1M: [], history12M: [], history3M: [], history6M: [], historyYTD: [], currentPrice: 0, change1M: 0, change12M: 0, change3M: 0, change6M: 0, changeYTD: 0 },
             timeframe: '1M'
         });
 

@@ -1,4 +1,4 @@
-import { MOCK_ASSETS } from '../services/data';
+import { getActiveAssets, getActiveBenchmark } from '../services/data';
 import type { AssetData } from '../services/data';
 import { ResponsiveContainer, LineChart, Line, YAxis } from 'recharts';
 import { TrendingUp, TrendingDown, Eye, EyeOff } from 'lucide-react';
@@ -35,7 +35,8 @@ interface AssetListProps {
 }
 
 export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAsset, hoveredAsset, setHoveredAsset }) => {
-    const portfolioAssets = MOCK_ASSETS.filter(a => a.symbol !== 'SPY');
+    const portfolioAssets = getActiveAssets();
+    const benchmark = getActiveBenchmark();
 
     return (
         <div className="flex flex-col gap-3">
@@ -49,8 +50,7 @@ export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAs
                 const assetColor = COLORS[asset.symbol] || '#00ff9d';
 
                 // For the relative performance bar vs SPY (just a visual heuristic)
-                const spy = MOCK_ASSETS.find(a => a.symbol === 'SPY');
-                const relPerf = asset.change1M - (spy?.change1M || 0);
+                const relPerf = asset.change1M - (benchmark?.change1M || 0);
                 const normalizedWidth = Math.min(100, Math.max(5, Math.abs(relPerf) * 4)); // arbitrary scaling for visual
 
                 return (
@@ -90,7 +90,7 @@ export const AssetList: React.FC<AssetListProps> = ({ selectedAssets, onToggleAs
                         <div className="flex justify-between items-end border-t border-slate-700/30 pt-3 mt-1 opacity-90 group-hover:opacity-100 transition-opacity">
                             <div className="flex-1 mr-4">
                                 <div className="text-[10px] text-slate-500 mb-1 flex justify-between">
-                                    <span>vs S&P 500</span>
+                                    <span>vs {benchmark.name}</span>
                                     <span className={relPerf > 0 ? 'text-emerald-500/80' : 'text-rose-500/80'}>{relPerf > 0 ? '+' : ''}{relPerf.toFixed(1)}%</span>
                                 </div>
                                 <div className="w-full bg-slate-900/50 rounded-full h-1.5 overflow-hidden flex">

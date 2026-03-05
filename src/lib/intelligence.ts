@@ -14,8 +14,11 @@ export type IntelligenceOutput = {
     topContributors: { symbol: string; contribution: number; color: string }[];
     bottomContributors: { symbol: string; contribution: number; color: string }[];
     vol: number;
+    sharpeRatio: number;
+    sortinoRatio: number;
     maxDrawdown: number;
-    flags: { type: "RISK" | "DRAWDOWN" | "CONCENTRATION" | "DIVERGENCE"; level: "ok" | "warn" | "risk"; label: string }[];
+    beta: number;
+    flags: { type: "RISK" | "DRAWDOWN" | "CONCENTRATION" | "DIVERGENCE" | "HIGH_BETA"; level: "ok" | "warn" | "risk"; label: string }[];
     marketRegime: "Bullish" | "Neutral" | "Bearish";
     pulseScore: number;
     summary: string;
@@ -31,7 +34,7 @@ const COLORS: Record<string, string> = {
     BTC: '#f59e0b'
 };
 
-const getReturns = (history: DataPoint[]) => {
+export const getReturns = (history: DataPoint[]) => {
     const returns: number[] = [];
     for (let i = 1; i < history.length; i++) {
         returns.push(history[i].price / history[i - 1].price - 1);
@@ -39,7 +42,7 @@ const getReturns = (history: DataPoint[]) => {
     return returns;
 };
 
-const computeStdDev = (arr: number[]) => {
+export const computeStdDev = (arr: number[]) => {
     if (arr.length === 0) return 0;
     const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
     const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
@@ -47,7 +50,7 @@ const computeStdDev = (arr: number[]) => {
 };
 
 // Simple correlation logic
-const computeCorrelation = (arr1: number[], arr2: number[]) => {
+export const computeCorrelation = (arr1: number[], arr2: number[]) => {
     if (arr1.length === 0 || arr2.length === 0 || arr1.length !== arr2.length) return 0;
     const mean1 = arr1.reduce((a, b) => a + b, 0) / arr1.length;
     const mean2 = arr2.reduce((a, b) => a + b, 0) / arr2.length;
@@ -64,7 +67,7 @@ const computeCorrelation = (arr1: number[], arr2: number[]) => {
     return num / Math.sqrt(den1 * den2);
 };
 
-const computeMaxDrawdown = (cumulativeReturns: number[]) => {
+export const computeMaxDrawdown = (cumulativeReturns: number[]) => {
     let maxDD = 0;
     let peak = cumulativeReturns[0] || 1;
     for (const val of cumulativeReturns) {
@@ -78,29 +81,56 @@ const computeMaxDrawdown = (cumulativeReturns: number[]) => {
 export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutput => {
     const { assets, benchmark, timeframe, weights } = input;
 
-    // Equal weights by default
-    const n = assets.length;
-    const w = weights || Object.fromEntries(assets.map(a => [a.symbol, 1 / n]));
+    // --- DATA QUALITY CHECKS ---
+    if (!assets || assets.length === 0) {
+        return createEmptyIntelligenceOutput('No assets tracked.');
+    }
+    if (!benchmark || !benchmark.history1M || !benchmark.history12M) {
+        return createEmptyIntelligenceOutput('Benchmark data unavailable.');
+    }
 
     const getHist = (a: AssetData) => timeframe === '1M' ? a.history1M : a.history12M;
+
+    // Filter out assets with no data for the timeframe
+    const validAssets = assets.filter(a => getHist(a) && getHist(a).length > 0);
+    if (validAssets.length === 0) {
+        return createEmptyIntelligenceOutput(`No asset data available for ${timeframe}.`);
+    }
+
+    // Equal weights by default across VALID assets
+    const n = validAssets.length;
+    const w = weights || Object.fromEntries(validAssets.map(a => [a.symbol, 1 / n]));
 
     // Daily/Weekly Returns
     const benchmarkReturns = getReturns(getHist(benchmark));
 
     const assetReturnsMap: Record<string, number[]> = {};
-    assets.forEach(a => {
+    validAssets.forEach(a => {
         assetReturnsMap[a.symbol] = getReturns(getHist(a));
     });
 
-    const numPoints = benchmarkReturns.length;
+    // Handle mismatched data lengths by aligning to the shortest available history
+    const lengths = [benchmarkReturns.length, ...validAssets.map(a => assetReturnsMap[a.symbol].length)];
+    const numPoints = Math.min(...lengths);
+
+    if (numPoints < 5) {
+        return createEmptyIntelligenceOutput('Insufficient data for period. Wait for more market days.');
+    }
+
+    // Slice all returns to align to the last `numPoints`
+    const alignedBenchmarkReturns = benchmarkReturns.slice(-numPoints);
+
     const portfolioDailyReturns: number[] = [];
     const portfolioCumulative: number[] = [1];
     let currentCum = 1;
 
     for (let i = 0; i < numPoints; i++) {
         let dailyRet = 0;
-        assets.forEach(a => {
-            const r = assetReturnsMap[a.symbol][i] || 0;
+        validAssets.forEach(a => {
+            const rList = assetReturnsMap[a.symbol];
+            // Get the corresponding aligned index
+            const alignedIndex = rList.length - numPoints + i;
+            const r = rList[alignedIndex] || 0;
             dailyRet += (w[a.symbol] || 0) * r;
         });
         portfolioDailyReturns.push(dailyRet);
@@ -116,7 +146,7 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
     const alpha = portfolioReturn - benchmarkReturn;
 
     // Contributions
-    const contributions = assets.map(a => {
+    const contributions = validAssets.map(a => {
         const start = getHist(a)[0].price;
         const end = getHist(a)[getHist(a).length - 1].price;
         const totalRet = (end / start) - 1;
@@ -133,8 +163,36 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
 
     // Risk
     const vol = computeStdDev(portfolioDailyReturns);
-    const benchVol = computeStdDev(benchmarkReturns);
+    const benchVol = computeStdDev(alignedBenchmarkReturns);
     const maxDrawdown = computeMaxDrawdown(portfolioCumulative);
+
+    // Annualized Sharpe Ratio Calculation (Assumes 4% Risk-Free Rate)
+    const annualRFR = 0.04;
+    const annualizedReturn = Math.pow(1 + portfolioReturn, 252 / numPoints) - 1;
+    const annualizedVol = vol * Math.sqrt(252);
+    const sharpeRatio = annualizedVol === 0 ? 0 : (annualizedReturn - annualRFR) / annualizedVol;
+
+    // Sortino Ratio — like Sharpe but only penalizes downside volatility.
+    // Better metric for portfolios with crypto (upside swings shouldn't count as risk).
+    // MAR (minimum acceptable return) = 0 per day.
+    const downsideVariance = portfolioDailyReturns.reduce((sum, r) => sum + (r < 0 ? r * r : 0), 0) / portfolioDailyReturns.length;
+    const annualizedDownsideVol = Math.sqrt(downsideVariance) * Math.sqrt(252);
+    const sortinoRatio = annualizedDownsideVol === 0 ? 0 : (annualizedReturn - annualRFR) / annualizedDownsideVol;
+
+    // Beta: cov(portfolio, benchmark) / var(benchmark)
+    // Tells how much the portfolio amplifies benchmark swings.
+    // Beta 1.0 = lockstep. Beta 1.5 = 50% more sensitive.
+    const meanPort = portfolioDailyReturns.reduce((a, b) => a + b, 0) / portfolioDailyReturns.length;
+    const meanBnch = alignedBenchmarkReturns.reduce((a, b) => a + b, 0) / alignedBenchmarkReturns.length;
+    let covSum = 0;
+    let varBnchSum = 0;
+    for (let i = 0; i < portfolioDailyReturns.length; i++) {
+        const dp = portfolioDailyReturns[i] - meanPort;
+        const db = alignedBenchmarkReturns[i] - meanBnch;
+        covSum += dp * db;
+        varBnchSum += db * db;
+    }
+    const beta = varBnchSum === 0 ? 1 : covSum / varBnchSum;
 
     // Flags
     const flags: IntelligenceOutput['flags'] = [];
@@ -151,27 +209,31 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
     const maxContribRatio = totalAbsContrib > 0 ? Math.abs(contributions[0].contribution) / totalAbsContrib : 0;
 
     if (maxContribRatio > 0.45) {
-        flags.push({ type: 'CONCENTRATION', level: 'warn', label: `${contributions[0].symbol} >45% influence` });
+        flags.push({ type: 'CONCENTRATION', level: 'warn', label: `${contributions[0]?.symbol || 'Asset'} >45% influence` });
     }
 
-    const corr = computeCorrelation(portfolioDailyReturns, benchmarkReturns);
+    const corr = computeCorrelation(portfolioDailyReturns, alignedBenchmarkReturns);
     if (corr < 0.2) {
         flags.push({ type: 'DIVERGENCE', level: 'warn', label: `Low SPY correlation` });
     }
 
+    if (beta > 1.5) {
+        flags.push({ type: 'HIGH_BETA', level: 'warn', label: `Beta ${beta.toFixed(2)} — high market sensitivity` });
+    }
+
     // Market Regime Detection
-    // Simple heuristic: SPY positive by >1% -> Bullish, SPY negative < -1% -> Bearish, else Neutral
-    // Can enhance later with moving averages if data supports it.
     let marketRegime: IntelligenceOutput['marketRegime'] = "Neutral";
     if (benchmarkReturn > 0.01) marketRegime = "Bullish";
     else if (benchmarkReturn < -0.01) marketRegime = "Bearish";
 
     // Pulse Score Calculation
     let pulseScore = 50;
-    // Cap alpha contribution to ±40 points
     pulseScore += Math.max(-40, Math.min(40, alpha * 400));
     pulseScore -= Math.abs(maxDrawdown) * 200;
+    if (sharpeRatio > 1.5) pulseScore += 10;
+    if (sortinoRatio > 2.0) pulseScore += 5;
     if (maxContribRatio > 0.45) pulseScore -= 10;
+    if (beta > 1.5) pulseScore -= 5;
 
     pulseScore = Math.max(0, Math.min(100, Math.round(pulseScore)));
 
@@ -180,7 +242,7 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
     const benchRetFmt = (benchmarkReturn * 100).toFixed(1);
     const alphaFmt = Math.abs(alpha * 100).toFixed(1);
 
-    let summary = `Portfolio ${portfolioReturn >= 0 ? '+' : ''}${ptRetFmt}% vs SPY ${benchmarkReturn >= 0 ? '+' : ''}${benchRetFmt}% → `;
+    let summary = `Portfolio ${portfolioReturn >= 0 ? '+' : ''}${ptRetFmt}% vs benchmark ${benchmarkReturn >= 0 ? '+' : ''}${benchRetFmt}% → `;
     summary += `${alpha >= 0 ? '+' : '-'}${alphaFmt}% ${alpha >= 0 ? 'alpha' : 'underperformance'}. `;
 
     if (topContributors.length > 0) {
@@ -198,9 +260,30 @@ export const computeIntelligence = (input: IntelligenceInput): IntelligenceOutpu
         bottomContributors,
         vol,
         maxDrawdown,
+        sharpeRatio,
+        sortinoRatio,
+        beta,
         flags,
         marketRegime,
         pulseScore,
         summary
     };
 };
+
+// Helper for empty states
+const createEmptyIntelligenceOutput = (reason: string): IntelligenceOutput => ({
+    portfolioReturn: 0,
+    benchmarkReturn: 0,
+    alpha: 0,
+    topContributors: [],
+    bottomContributors: [],
+    vol: 0,
+    maxDrawdown: 0,
+    sharpeRatio: 0,
+    sortinoRatio: 0,
+    beta: 0,
+    flags: [],
+    marketRegime: "Neutral",
+    pulseScore: 0,
+    summary: reason
+});

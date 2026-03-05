@@ -1,8 +1,8 @@
-import { MOCK_ASSETS } from '../services/data';
+import { getActiveAssets } from '../services/data';
 import { Calendar } from 'lucide-react';
 
 export const PerformanceHeatmap = () => {
-    const portfolioAssets = MOCK_ASSETS.filter(a => a.symbol !== 'SPY');
+    const portfolioAssets = getActiveAssets();
 
     // We mock 4 weeks of data based on the total 1M change to provide a realistic-looking heatmap trend.
     const generateWeeklyBlocks = (totalChange: number) => {
