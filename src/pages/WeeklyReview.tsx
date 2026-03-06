@@ -8,8 +8,7 @@ import { ReviewNoteInput } from '../components/ReviewNoteInput';
 import { ReviewHistory } from '../components/ReviewHistory';
 import { ArrowLeft, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import { useReactToPrint } from 'react-to-print';
 
 export const WeeklyReview = () => {
     // For the weekly review, we lock the timeframe to 1M to represent recent performance
@@ -26,42 +25,25 @@ export const WeeklyReview = () => {
         return computeIntelligence(input);
     }, []);
 
-    const exportToPDF = async () => {
-        if (!reviewRef.current) return;
-
-        setIsExporting(true);
-        try {
-            // Setup canvas
-            const canvas = await html2canvas(reviewRef.current, {
-                scale: 2, // Higher resolution
-                useCORS: true,
-                backgroundColor: '#0f172a', // Tailwind slate-900 to match dark theme
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-
-            // Calculate PDF dimensions (A4 size)
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-            // Generate filename with current date
-            const date = new Date().toISOString().split('T')[0];
-            pdf.save(`weekly-review-${date}.pdf`);
-
-        } catch (error) {
-            console.error('Failed to generate PDF:', error);
-            // Optionally add a toast notification here
-        } finally {
+    const exportToPDF = useReactToPrint({
+        contentRef: reviewRef,
+        documentTitle: `Weekly-Review-${new Date().toISOString().split('T')[0]}`,
+        onAfterPrint: () => {
             setIsExporting(false);
+        },
+        onPrintError: (error) => {
+            console.error('Print failed', error);
+            setIsExporting(false);
+            alert('Failed to open print dialog. Please try again.');
         }
+    });
+
+    const handleExport = () => {
+        setIsExporting(true);
+        // Small timeout to allow state to settle
+        setTimeout(() => {
+            exportToPDF();
+        }, 100);
     };
 
     return (
@@ -69,7 +51,7 @@ export const WeeklyReview = () => {
 
             {/* Header */}
             <div className="flex flex-col gap-4 mb-8">
-                <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors w-fit" data-html2canvas-ignore>
+                <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors w-fit print:hidden">
                     <ArrowLeft size={16} />
                     Back to Dashboard
                 </Link>
@@ -81,10 +63,9 @@ export const WeeklyReview = () => {
                     </div>
 
                     <button
-                        onClick={exportToPDF}
+                        onClick={handleExport}
                         disabled={isExporting}
-                        data-html2canvas-ignore
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700/50 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700/50 text-sm disabled:opacity-50 disabled:cursor-not-allowed print:hidden"
                     >
                         <Download size={16} />
                         {isExporting ? 'Generating...' : 'Export PDF'}
@@ -94,8 +75,8 @@ export const WeeklyReview = () => {
 
             <div className="space-y-6">
                 {/* 1. Summary & Drivers Wrapper */}
-                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden print:border-none print:shadow-none print:break-inside-avoid">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none print:hidden" />
 
                     <h2 className="text-xl font-medium text-slate-200 mb-6 flex items-center gap-2">
                         <span className="w-1.5 h-6 bg-teal-500 rounded-full" />
@@ -110,8 +91,8 @@ export const WeeklyReview = () => {
                 </div>
 
                 {/* 2. AI Coach Wrapper */}
-                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden print:border-none print:shadow-none print:break-inside-avoid print:mt-8">
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none print:hidden" />
 
                     <h2 className="text-xl font-medium text-slate-200 mb-6 flex items-center gap-2">
                         <span className="w-1.5 h-6 bg-fuchsia-500 rounded-full" />
@@ -122,7 +103,7 @@ export const WeeklyReview = () => {
                 </div>
 
                 {/* 3. Action / Note Input */}
-                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl">
+                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl print:border-none print:shadow-none print:break-inside-avoid print:mt-8">
                     <h2 className="text-xl font-medium text-slate-200 mb-6 flex items-center gap-2">
                         <span className="w-1.5 h-6 bg-indigo-500 rounded-full" />
                         Synthesis
@@ -133,7 +114,7 @@ export const WeeklyReview = () => {
 
 
                 {/* 4. Past Reviews */}
-                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl">
+                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl print:border-none print:shadow-none print:break-inside-avoid print:mt-8">
                     <h2 className="text-xl font-medium text-slate-200 mb-2 flex items-center gap-2">
                         <span className="w-1.5 h-6 bg-amber-500 rounded-full" />
                         Past Reviews
