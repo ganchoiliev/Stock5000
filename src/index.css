@@ -37,21 +37,37 @@
 
 @media print {
 
-  /* Force white background throughout */
-  * {
-    background: white !important;
-    background-color: white !important;
-    background-image: none !important;
-    box-shadow: none !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
+  /* Base print settings */
   body {
+    background: white !important;
     color: #1e293b !important;
     font-family: 'Poppins', sans-serif !important;
     margin: 0;
     padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Disable all animations and transitions to prevent mid-frame printing */
+  * {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Globally disable overlay clipping which causes horizontal/vertical cuts in PDFs */
+  .overflow-hidden,
+  [class*="overflow-hidden"],
+  [class*="overflow-x"],
+  [class*="overflow-y"] {
+    overflow: visible !important;
+  }
+
+  /* Make large dark containers transparent rather than black */
+  [class*="bg-slate-800"],
+  [class*="bg-slate-900"] {
+    background-color: transparent !important;
+    border-color: #e2e8f0 !important;
   }
 
   /* Hide navigation, buttons and decorative elements */
@@ -100,15 +116,15 @@
     color: #7c3aed !important;
   }
 
-  /* Keep page breaks clean */
+  /* Allow normal page breaks, avoid strict avoid classes which cause clipping bugs in Chrome */
   .print\:break-inside-avoid {
-    break-inside: avoid;
+    break-inside: auto !important;
   }
 
   /* Page setup */
   @page {
     margin: 15mm;
-    size: A4 portrait;
+    size: auto;
   }
 }
 

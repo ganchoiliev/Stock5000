@@ -62,7 +62,7 @@ export const IntelligenceCard: React.FC<IntelligenceCardProps> = ({ intel, timef
                 <p className="text-slate-300 leading-relaxed text-[15px] font-medium tracking-wide">
                     {intel.summary}
                 </p>
-                <div className="mt-2 flex gap-4 text-xs text-slate-400">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-400">
                     <span className="flex items-center">
                         Alpha: {(intel.alpha * 100).toFixed(1)}% <TooltipIcon text="Portfolio return minus benchmark (S&P 500) return." />
                     </span>
