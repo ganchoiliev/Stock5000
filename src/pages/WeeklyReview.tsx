@@ -5,6 +5,7 @@ import type { IntelligenceInput } from '../lib/intelligence';
 import { IntelligenceCard } from '../components/IntelligenceCard';
 import { AICoachCard } from '../components/AICoachCard';
 import { ReviewNoteInput } from '../components/ReviewNoteInput';
+import { ReviewHistory } from '../components/ReviewHistory';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -75,7 +76,19 @@ export const WeeklyReview = () => {
 
                     <ReviewNoteInput />
                 </div>
+
+
+                {/* 4. Past Reviews */}
+                <div className="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-6 shadow-2xl">
+                    <h2 className="text-xl font-medium text-slate-200 mb-2 flex items-center gap-2">
+                        <span className="w-1.5 h-6 bg-amber-500 rounded-full" />
+                        Past Reviews
+                    </h2>
+                    <p className="text-xs text-slate-500 mb-6">A record of your weekly synthesis notes — newest first.</p>
+                    <ReviewHistory />
+                </div>
             </div>
+
 
             <div className="mt-12 text-center">
                 <p className="text-xs text-slate-500">"The investor's chief problem—and even his worst enemy—is likely to be himself."</p>
