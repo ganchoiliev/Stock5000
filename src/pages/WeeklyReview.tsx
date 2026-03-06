@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { getActiveAssets, getActiveBenchmark } from '../services/data';
 import { computeIntelligence } from '../lib/intelligence';
 import type { IntelligenceInput } from '../lib/intelligence';
@@ -6,12 +6,16 @@ import { IntelligenceCard } from '../components/IntelligenceCard';
 import { AICoachCard } from '../components/AICoachCard';
 import { ReviewNoteInput } from '../components/ReviewNoteInput';
 import { ReviewHistory } from '../components/ReviewHistory';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 export const WeeklyReview = () => {
     // For the weekly review, we lock the timeframe to 1M to represent recent performance
     const timeframe = '1M';
+    const reviewRef = useRef<HTMLDivElement>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     const intel = useMemo(() => {
         const input: IntelligenceInput = {
@@ -22,19 +26,69 @@ export const WeeklyReview = () => {
         return computeIntelligence(input);
     }, []);
 
+    const exportToPDF = async () => {
+        if (!reviewRef.current) return;
+
+        setIsExporting(true);
+        try {
+            // Setup canvas
+            const canvas = await html2canvas(reviewRef.current, {
+                scale: 2, // Higher resolution
+                useCORS: true,
+                backgroundColor: '#0f172a', // Tailwind slate-900 to match dark theme
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+
+            // Calculate PDF dimensions (A4 size)
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+            // Generate filename with current date
+            const date = new Date().toISOString().split('T')[0];
+            pdf.save(`weekly-review-${date}.pdf`);
+
+        } catch (error) {
+            console.error('Failed to generate PDF:', error);
+            // Optionally add a toast notification here
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 pb-12">
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 pb-12" ref={reviewRef}>
 
             {/* Header */}
             <div className="flex flex-col gap-4 mb-8">
-                <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors w-fit">
+                <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors w-fit" data-html2canvas-ignore>
                     <ArrowLeft size={16} />
                     Back to Dashboard
                 </Link>
 
-                <div>
-                    <h1 className="text-3xl font-light text-slate-100 mb-2">Weekly Review</h1>
-                    <p className="text-slate-400 text-sm">Synthesize the last 30 days of performance, digest AI insights, and plan your next move.</p>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-3xl font-light text-slate-100 mb-2">Weekly Review</h1>
+                        <p className="text-slate-400 text-sm">Synthesize the last 30 days of performance, digest AI insights, and plan your next move.</p>
+                    </div>
+
+                    <button
+                        onClick={exportToPDF}
+                        disabled={isExporting}
+                        data-html2canvas-ignore
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700/50 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Download size={16} />
+                        {isExporting ? 'Generating...' : 'Export PDF'}
+                    </button>
                 </div>
             </div>
 
