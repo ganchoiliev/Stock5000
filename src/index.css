@@ -35,6 +35,83 @@
   }
 }
 
+@media print {
+
+  /* Force white background throughout */
+  * {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    color: #1e293b !important;
+    font-family: 'Poppins', sans-serif !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Hide navigation, buttons and decorative elements */
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Card sections: clean borders */
+  [class*="border"] {
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Text colours */
+  [class*="text-slate-100"],
+  [class*="text-slate-200"],
+  [class*="text-slate-300"] {
+    color: #1e293b !important;
+  }
+
+  [class*="text-slate-400"],
+  [class*="text-slate-500"] {
+    color: #64748b !important;
+  }
+
+  /* Accent colours — keep for visual identity */
+  [class*="text-teal"],
+  [class*="bg-teal"] {
+    color: #0891b2 !important;
+  }
+
+  [class*="text-emerald"],
+  [class*="text-green"] {
+    color: #16a34a !important;
+  }
+
+  [class*="text-rose"],
+  [class*="text-red"] {
+    color: #dc2626 !important;
+  }
+
+  [class*="text-fuchsia"],
+  [class*="text-purple"],
+  [class*="text-indigo"] {
+    color: #7c3aed !important;
+  }
+
+  /* Keep page breaks clean */
+  .print\:break-inside-avoid {
+    break-inside: avoid;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 15mm;
+    size: A4 portrait;
+  }
+}
+
 @layer base {
   :root {
     --background: var(--color-slate-900);
