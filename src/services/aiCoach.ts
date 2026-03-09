@@ -1,13 +1,7 @@
 import type { IntelligenceOutput } from '../lib/intelligence';
-
-// Use the environment variable provided
-const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+import { OPENAI_PROXY_URL, SUPABASE_ANON_KEY } from '../lib/supabaseConfig';
 
 export const generateAIInsight = async (intel: IntelligenceOutput, timeframe: string): Promise<string> => {
-    if (!apiKey) {
-        return "⚠️ OpenAI API key is missing. Please check your environment variables.";
-    }
-
     // Construct a concise prompt with the exact data needed
     const prompt = `
 You are a calm, senior financial advisor providing a quick, personalized insight on a user's portfolio.
@@ -28,18 +22,17 @@ Provide a single, insightful paragraph.
 `;
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(OPENAI_PROXY_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo', // Using 3.5-turbo for speed and lower cost for this simple summary
-                messages: [
-                    { role: 'system', content: 'You are a concise, reassuring, and expert portfolio analyst.' },
-                    { role: 'user', content: prompt }
-                ],
+                type: 'insight',
+                systemPrompt: 'You are a concise, reassuring, and expert portfolio analyst.',
+                userPrompt: prompt,
+                model: 'gpt-4o-mini',
                 max_tokens: 150,
                 temperature: 0.7,
             }),
@@ -47,11 +40,10 @@ Provide a single, insightful paragraph.
 
         if (!response.ok) {
             const error = await response.json();
-            // Handle quota specifically
-            if (error.error?.code === 'insufficient_quota') {
+            if (error.error?.includes?.('quota') || error.error?.includes?.('insufficient_quota')) {
                 return "The AI Coach is currently unavailable due to API quota limits. Please check your OpenAI billing details.";
             }
-            throw new Error(error.error?.message || 'Failed to fetch AI insight');
+            throw new Error(error.error || 'Failed to fetch AI insight');
         }
 
         const data = await response.json();

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, X, Loader2, MessageSquare } from 'lucide-react';
+import { OPENAI_PROXY_URL, SUPABASE_ANON_KEY } from '../lib/supabaseConfig';
 
 interface Message {
     id: string;
@@ -30,44 +31,28 @@ export const AIChat = () => {
         setInput('');
         setIsLoading(true);
 
-        const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-        if (!apiKey) {
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    id: Date.now().toString(),
-                    role: 'assistant',
-                    content: 'Error: API key not found. Please ensure VITE_OPENAI_API_KEY is set in your environment variables.'
-                }]);
-                setIsLoading(false);
-            }, 1000);
-            return;
-        }
-
         try {
-            // Standard OpenAI Chat Completions API format
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch(OPENAI_PROXY_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify({
-                    model: 'gpt-3.5-turbo', // or gpt-4o depending on availability
+                    type: 'chat',
                     messages: [
-                        { role: 'system', content: 'You are a helpful financial assistant inside a stock tracking dashboard called Portfolio Pulse. Give concise, insightful answers about stocks, tech companies, and investing.' },
-                        // Map our message history into the API format
                         ...messages.map(m => ({ role: m.role, content: m.content })),
                         { role: 'user', content: userMessage.content }
                     ],
-                    max_tokens: 300
+                    model: 'gpt-4o-mini',
+                    max_tokens: 300,
                 })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error?.message || 'Failed to fetch response');
+                throw new Error(data.error || 'Failed to fetch response');
             }
 
             const aiMessage: Message = {
